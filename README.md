@@ -10,7 +10,7 @@ BisindoCV/
 ├── data/
 │   ├── raw/
 │   │   ├── wl_bisindo/         # Dataset WL-BISINDO (32 kata)
-│   │   └── custom/             # Dataset rekaman sendiri
+│   │   └── .../             # Dataset rekaman sendiri
 │   ├── landmarks/              # Hasil ekstraksi landmark
 │   └── processed/              # Data siap training
 ├── src/
@@ -70,7 +70,7 @@ Ekstraksi dataset yang sudah didownload dan buat struktur folder sebagai berikut
 ├── data/
 │   ├── raw/
 │   │   ├── wl_bisindo/         # Dataset WL-BISINDO (32 kata)
-│   │   └── custom/             # Dataset rekaman sendiri (opsional)
+│   │   └── .../                # Dataset yang direkam sendiri
 │   ├── landmarks/              # Hasil ekstraksi landmark
 │   └── processed/              # Data siap training
 ```
@@ -131,15 +131,15 @@ Jika Anda memiliki dataset WL-BISINDO dan dataset custom:
 
 ```powershell
 # Ekstraksi masing-masing
-python src/extract_landmarks.py --input data/raw/wl_bisindo --output data/landmarks/wl_bisindo
-python src/extract_landmarks.py --input data/raw/custom --output data/landmarks/custom
+python src/extract_landmarks_orientation.py --input data/raw/wl_bisindo --output data/landmarks/wl_bisindo
+python src/extract_landmarks_orientation.py --input data/raw/custom --output data/landmarks/custom
 
-# Gabungkan folder landmarks secara manual atau buat script merger
+# PENTING: Gabungkan folder landmarks secara manual atau buat script merger
 # Lalu preprocess gabungan
 python src/preprocess.py --landmarks-dir data/landmarks/combined --output-dir data/processed
 ```
 
-## Format Video untuk Rekaman Custom
+## Format Video untuk Rekaman Dataset Sendiri
 
 - **Format:** MP4 (H.264 codec)
 - **Resolusi:** 640×480 atau 1280×720
@@ -148,6 +148,7 @@ python src/preprocess.py --landmarks-dir data/landmarks/combined --output-dir da
 - **Background:** Polos, minim distraksi
 - **Pencahayaan:** Terang, merata
 - **Framing:** Setengah badan ke atas
+**Perhatikan bagian kiri dan kanan, sesuaikan dengan dataset WL_Bisindo**
 
 ## Dependencies
 

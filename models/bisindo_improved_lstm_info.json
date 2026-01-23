@@ -1,11 +1,11 @@
 {
   "model_name": "bisindo_improved_lstm",
-  "test_accuracy": 0.9750000238418579,
-  "test_loss": 0.9095285534858704,
-  "epochs_trained": 140,
+  "test_accuracy": 0.9727272987365723,
+  "test_loss": 1.1945704221725464,
+  "epochs_trained": 124,
   "sequence_length": 60,
   "num_features": 154,
-  "num_classes": 32,
+  "num_classes": 33,
   "classes": [
     "Air",
     "Apa",
@@ -30,6 +30,7 @@
     "Mengapa",
     "Merah",
     "Motor",
+    "Neutral",
     "Pagi",
     "Rumah",
     "Saya",
@@ -41,5 +42,5 @@
     "Tuli"
   ],
   "augmentation": true,
-  "training_samples": 5120
+  "training_samples": 5280
 }

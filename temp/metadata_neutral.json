@@ -1,0 +1,365 @@
+{
+  "classes": [
+    "Neutral",
+    "WL_Bisindo"
+  ],
+  "videos": [
+    {
+      "class": "Neutral",
+      "video": "Neutral_0.avi",
+      "output": "Neutral\\Neutral_0.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_1.avi",
+      "output": "Neutral\\Neutral_1.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_10.avi",
+      "output": "Neutral\\Neutral_10.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_11.avi",
+      "output": "Neutral\\Neutral_11.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_12.avi",
+      "output": "Neutral\\Neutral_12.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_13.avi",
+      "output": "Neutral\\Neutral_13.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_14.avi",
+      "output": "Neutral\\Neutral_14.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_15.avi",
+      "output": "Neutral\\Neutral_15.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_16.avi",
+      "output": "Neutral\\Neutral_16.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_17.avi",
+      "output": "Neutral\\Neutral_17.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_18.avi",
+      "output": "Neutral\\Neutral_18.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_19.avi",
+      "output": "Neutral\\Neutral_19.npy",
+      "num_frames": 30,
+      "detection_rate": 0.23333333333333334
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_2.avi",
+      "output": "Neutral\\Neutral_2.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_20.avi",
+      "output": "Neutral\\Neutral_20.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_21.avi",
+      "output": "Neutral\\Neutral_21.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_22.avi",
+      "output": "Neutral\\Neutral_22.npy",
+      "num_frames": 30,
+      "detection_rate": 1.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_23.avi",
+      "output": "Neutral\\Neutral_23.npy",
+      "num_frames": 30,
+      "detection_rate": 0.9666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_24.avi",
+      "output": "Neutral\\Neutral_24.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_25.avi",
+      "output": "Neutral\\Neutral_25.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_26.avi",
+      "output": "Neutral\\Neutral_26.npy",
+      "num_frames": 30,
+      "detection_rate": 0.9666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_27.avi",
+      "output": "Neutral\\Neutral_27.npy",
+      "num_frames": 30,
+      "detection_rate": 1.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_28.avi",
+      "output": "Neutral\\neutral_28.npy",
+      "num_frames": 30,
+      "detection_rate": 0.9
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_29.avi",
+      "output": "Neutral\\neutral_29.npy",
+      "num_frames": 30,
+      "detection_rate": 0.9666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_3.avi",
+      "output": "Neutral\\Neutral_3.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_30.avi",
+      "output": "Neutral\\neutral_30.npy",
+      "num_frames": 30,
+      "detection_rate": 1.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_31.avi",
+      "output": "Neutral\\neutral_31.npy",
+      "num_frames": 30,
+      "detection_rate": 1.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_32.avi",
+      "output": "Neutral\\neutral_32.npy",
+      "num_frames": 30,
+      "detection_rate": 0.8666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_33.avi",
+      "output": "Neutral\\neutral_33.npy",
+      "num_frames": 30,
+      "detection_rate": 0.9333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_34.avi",
+      "output": "Neutral\\neutral_34.npy",
+      "num_frames": 30,
+      "detection_rate": 1.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_35.avi",
+      "output": "Neutral\\neutral_35.npy",
+      "num_frames": 30,
+      "detection_rate": 1.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_36.avi",
+      "output": "Neutral\\neutral_36.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_37.avi",
+      "output": "Neutral\\neutral_37.npy",
+      "num_frames": 30,
+      "detection_rate": 0.8333333333333334
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_38.avi",
+      "output": "Neutral\\neutral_38.npy",
+      "num_frames": 30,
+      "detection_rate": 0.3333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_39.avi",
+      "output": "Neutral\\neutral_39.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_4.avi",
+      "output": "Neutral\\Neutral_4.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_40.avi",
+      "output": "Neutral\\neutral_40.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_41.avi",
+      "output": "Neutral\\neutral_41.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_42.avi",
+      "output": "Neutral\\neutral_42.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_43.avi",
+      "output": "Neutral\\neutral_43.npy",
+      "num_frames": 30,
+      "detection_rate": 0.6666666666666666
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_44.avi",
+      "output": "Neutral\\neutral_44.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_45.avi",
+      "output": "Neutral\\neutral_45.npy",
+      "num_frames": 30,
+      "detection_rate": 0.6333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_46.avi",
+      "output": "Neutral\\neutral_46.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5666666666666667
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_47.avi",
+      "output": "Neutral\\neutral_47.npy",
+      "num_frames": 30,
+      "detection_rate": 0.5333333333333333
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_48.avi",
+      "output": "Neutral\\neutral_48.npy",
+      "num_frames": 30,
+      "detection_rate": 0.7
+    },
+    {
+      "class": "Neutral",
+      "video": "neutral_49.avi",
+      "output": "Neutral\\neutral_49.npy",
+      "num_frames": 30,
+      "detection_rate": 0.6
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_5.avi",
+      "output": "Neutral\\Neutral_5.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_6.avi",
+      "output": "Neutral\\Neutral_6.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_7.avi",
+      "output": "Neutral\\Neutral_7.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_8.avi",
+      "output": "Neutral\\Neutral_8.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    },
+    {
+      "class": "Neutral",
+      "video": "Neutral_9.avi",
+      "output": "Neutral\\Neutral_9.npy",
+      "num_frames": 30,
+      "detection_rate": 0.0
+    }
+  ],
+  "feature_dim": 154,
+  "include_finger_features": true,
+  "feature_breakdown": {
+    "hand_coordinates": 126,
+    "orientation_features": 10,
+    "finger_features": 18
+  }
+}
