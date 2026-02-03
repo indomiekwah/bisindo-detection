@@ -29,11 +29,15 @@ BisindoCV/
 
 ## Quick Start (Immediate Testing)
 
+Pastikan anda mempunyai python 3.10.11 untuk project ini
+Gunakan
 Untuk langsung menguji deteksi BISINDO setelah menginstall repository:
 
 ```powershell
 # 1. Buat virtual environment
 python -m venv venv
+# Pastikan versi python adalah 3.10.x, jika ada versi python installed maka gunakan:
+python -3.10 -m venv venv
 
 # 2. Aktivasi virtual environment
 .\venv\Scripts\Activate
