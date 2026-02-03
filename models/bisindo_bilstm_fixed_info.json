@@ -1,0 +1,31 @@
+{
+  "model_name": "bisindo_bilstm_fixed",
+  "test_accuracy": 0.7666666507720947,
+  "test_loss": 2.4044363498687744,
+  "final_train_accuracy": 0.9869281053543091,
+  "final_val_accuracy": 0.8333333134651184,
+  "epochs_trained": 50,
+  "sequence_length": 60,
+  "num_features": 154,
+  "num_classes": 7,
+  "classes": [
+    "Jijik",
+    "Marah",
+    "Neutral",
+    "Sedih",
+    "Senang",
+    "Takut",
+    "Terkejut"
+  ],
+  "training_samples": 306,
+  "validation_samples": 18,
+  "test_samples": 30,
+  "augmentation": "3x (original + noise + time_shift)",
+  "fixes_applied": [
+    "Split before augmentation",
+    "Reduced L2 regularization (0.001 -> 0.0001)",
+    "Reduced Dropout (0.4-0.5 -> 0.2-0.3)",
+    "Disabled class weights",
+    "Lighter augmentation"
+  ]
+}

@@ -17,6 +17,10 @@ BisindoCV/
 │   ├── extract_landmarks.py    # Script ekstraksi landmark
 │   ├── preprocess.py           # Script preprocessing
 │   └── predict.py              # Script prediksi real-time
+│   └── neutral_dataset.py      # Script record dataset neutral
+│   └── reorganize_dataset.py   # Script organize dataset WL Bisindo
+│   └── balance_dataset.py      # Script augmentasi dataset custom
+
 ├── models/                     # Model yang sudah ditrain
 ├── colab_notebooks/            # Notebook untuk training di Colab
 ├── requirements.txt
@@ -80,7 +84,7 @@ Ekstraksi dataset yang sudah didownload dan buat struktur folder sebagai berikut
 Dengan virtual environment tetap aktif, jalankan script ekstraksi landmark:
 
 ```powershell
-py src/extract_landmarks_orientation.py
+py src/extract_landmarks.py
 ```
 
 Script ini akan:
@@ -131,8 +135,8 @@ Jika Anda memiliki dataset WL-BISINDO dan dataset custom:
 
 ```powershell
 # Ekstraksi masing-masing
-python src/extract_landmarks_orientation.py --input data/raw/wl_bisindo --output data/landmarks/wl_bisindo
-python src/extract_landmarks_orientation.py --input data/raw/custom --output data/landmarks/custom
+python src/extract_landmarks.py --input data/raw/wl_bisindo --output data/landmarks/wl_bisindo
+python src/extract_landmarks.py --input data/raw/custom --output data/landmarks/custom
 
 # PENTING: Gabungkan folder landmarks secara manual atau buat script merger
 # Lalu preprocess gabungan
@@ -177,6 +181,10 @@ tqdm>=4.65.0
 ### Video tidak terbaca
 - Pastikan codec video didukung (MP4/H.264 recommended)
 - Install codec tambahan: `pip install opencv-python-headless`
+
+### Notebooks yang digunakan
+- Gunakan notebooks `train_bisindo_fixed.ipynb` untuk melatih dataset custom yang berjumlah sedikit (kurang dari 50 video per kelas).
+- Jika memiliki dataset yang cukup banyak untuk dilatih, gunakan `train_bisindo_optimized`
 
 ## Credits
 

@@ -1,16 +1,11 @@
 """
-BISINDO Real-time Prediction (with Palm Orientation)
+BISINDO Real-time Prediction - Relative Coordinates
 =====================================================
-Script untuk prediksi gesture BISINDO dengan fitur orientasi telapak tangan.
+Prediksi gesture BISINDO dengan koordinat RELATIF terhadap wrist.
 
-Features:
-- Deteksi tangan dengan MediaPipe Holistic
-- Fitur orientasi telapak tangan (palm vs back)
-- Prediksi gesture menggunakan trained model
-- Visualisasi landmarks dan hasil prediksi
-
-Usage:
-    python predict_orientation.py --model models/bisindo_model.keras
+Keuntungan:
+- Translation Invariant: posisi tangan di layar tidak mempengaruhi hasil
+- Pengguna bisa melakukan gesture di mana saja di frame kamera
 
 Author: BISINDO Project
 """
@@ -22,6 +17,7 @@ import pickle
 import time
 from pathlib import Path
 from collections import deque
+from datetime import datetime
 import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -55,13 +51,20 @@ class HandLandmark:
     PINKY_TIP = 20
 
 
-class BISINDOPredictorOrientation:
-    """Real-time BISINDO predictor with palm orientation features."""
+class BISINDOPredictorRelative:
+    """
+    Real-time BISINDO predictor with RELATIVE coordinates.
+    
+    Koordinat dihitung relatif terhadap wrist, sehingga posisi tangan
+    di layar tidak mempengaruhi prediksi.
+    """
     
     def __init__(self, model_path, label_encoder_path, 
                  sequence_length=60,
                  include_finger_features=True,
-                 confidence_threshold=0.7):
+                 normalize_scale=True,
+                 confidence_threshold=0.7,
+                 recording_dir="recordings"):
         
         print("Loading model...")
         self.model = tf.keras.models.load_model(model_path)
@@ -74,7 +77,12 @@ class BISINDOPredictorOrientation:
         
         self.sequence_length = sequence_length
         self.include_finger_features = include_finger_features
+        self.normalize_scale = normalize_scale
         self.confidence_threshold = confidence_threshold
+        
+        # Recording
+        self.recording_dir = Path(recording_dir)
+        self.recording_dir.mkdir(parents=True, exist_ok=True)
         
         # MediaPipe setup
         self.mp_holistic = mp.solutions.holistic
@@ -88,29 +96,89 @@ class BISINDOPredictorOrientation:
             min_tracking_confidence=0.5
         )
         
-        # Feature dimensions
-        self.num_hand_landmarks = 21
-        self.num_hand_coords = self.num_hand_landmarks * 3  # 63
-        self.num_orientation_features = 5  # normal(3) + facing(1) + openness(1)
-        self.num_finger_features = 9 if include_finger_features else 0  # extensions(5) + spreads(4)
+        # Feature dimensions (MUST match extraction script)
+        self.num_relative_coords = 20 * 3  # 60
+        self.num_scale_features = 1
+        self.num_wrist_position = 2
+        self.num_orientation_features = 5
+        self.num_finger_features = 9 if include_finger_features else 0
         
         self.features_per_hand = (
-            self.num_hand_coords +
-            self.num_orientation_features +
-            self.num_finger_features
-        )
-        self.num_features = self.features_per_hand * 2
+            self.num_relative_coords +      # 60
+            self.num_scale_features +       # 1
+            self.num_wrist_position +       # 2
+            self.num_orientation_features + # 5
+            self.num_finger_features        # 9
+        )  # Total: 77 per hand
+        
+        self.num_features = self.features_per_hand * 2  # 154 total
         
         print(f"Features per frame: {self.num_features}")
+        print(f"Coordinate type: RELATIVE (wrist = origin)")
         
         # Frame buffer
         self.frame_buffer = deque(maxlen=sequence_length)
         self.prediction_history = deque(maxlen=15)
         
+        # Recording state
+        self.is_recording = False
+        self.video_writer = None
+        self.recording_start_time = None
+        self.recording_frame_count = 0
+        self.current_recording_path = None
+        
         # Stats
         self.fps = 0
         self.last_time = time.time()
         self.frame_count = 0
+    
+    # ==================== RELATIVE COORDINATE EXTRACTION ====================
+    
+    def get_relative_coordinates(self, landmarks):
+        """
+        Convert absolute coordinates to relative (wrist = origin).
+        """
+        if landmarks is None:
+            return np.zeros(self.num_relative_coords), 0.0, (0.0, 0.0)
+        
+        # Get wrist position (origin)
+        wrist = np.array([
+            landmarks[HandLandmark.WRIST].x,
+            landmarks[HandLandmark.WRIST].y,
+            landmarks[HandLandmark.WRIST].z
+        ])
+        
+        wrist_position = (landmarks[HandLandmark.WRIST].x, 
+                         landmarks[HandLandmark.WRIST].y)
+        
+        # Calculate hand scale
+        middle_mcp = np.array([
+            landmarks[HandLandmark.MIDDLE_FINGER_MCP].x,
+            landmarks[HandLandmark.MIDDLE_FINGER_MCP].y,
+            landmarks[HandLandmark.MIDDLE_FINGER_MCP].z
+        ])
+        hand_scale = np.linalg.norm(middle_mcp - wrist)
+        
+        if hand_scale < 0.001:
+            hand_scale = 0.001
+        
+        # Extract relative coordinates for all landmarks except wrist
+        relative_coords = []
+        for i in range(1, 21):  # Skip wrist (index 0)
+            lm = landmarks[i]
+            
+            rel_x = lm.x - wrist[0]
+            rel_y = lm.y - wrist[1]
+            rel_z = lm.z - wrist[2]
+            
+            if self.normalize_scale:
+                rel_x /= hand_scale
+                rel_y /= hand_scale
+                rel_z /= hand_scale
+            
+            relative_coords.extend([rel_x, rel_y, rel_z])
+        
+        return np.array(relative_coords), hand_scale, wrist_position
     
     def calculate_palm_normal(self, landmarks):
         """Calculate palm normal vector."""
@@ -146,13 +214,21 @@ class BISINDOPredictorOrientation:
         return normal, palm_facing_score
     
     def calculate_hand_openness(self, landmarks):
-        """Calculate hand openness (0=fist, 1=open)."""
+        """Calculate hand openness."""
         if landmarks is None:
             return 0.0
         
         wrist = np.array([landmarks[HandLandmark.WRIST].x,
                          landmarks[HandLandmark.WRIST].y,
                          landmarks[HandLandmark.WRIST].z])
+        
+        middle_mcp = np.array([landmarks[HandLandmark.MIDDLE_FINGER_MCP].x,
+                               landmarks[HandLandmark.MIDDLE_FINGER_MCP].y,
+                               landmarks[HandLandmark.MIDDLE_FINGER_MCP].z])
+        hand_scale = np.linalg.norm(middle_mcp - wrist)
+        
+        if hand_scale < 0.001:
+            return 0.0
         
         fingertip_indices = [
             HandLandmark.THUMB_TIP, HandLandmark.INDEX_FINGER_TIP,
@@ -163,10 +239,11 @@ class BISINDOPredictorOrientation:
         distances = []
         for idx in fingertip_indices:
             tip = np.array([landmarks[idx].x, landmarks[idx].y, landmarks[idx].z])
-            distances.append(np.linalg.norm(tip - wrist))
+            dist = np.linalg.norm(tip - wrist) / hand_scale
+            distances.append(dist)
         
         avg_dist = np.mean(distances)
-        openness = min(1.0, max(0.0, (avg_dist - 0.1) / 0.3))
+        openness = min(1.0, max(0.0, (avg_dist - 1.0) / 2.0))
         
         return openness
     
@@ -209,8 +286,19 @@ class BISINDOPredictorOrientation:
         return np.array(extensions)
     
     def calculate_finger_spreads(self, landmarks):
-        """Calculate finger spread distances."""
+        """Calculate normalized finger spread distances."""
         if landmarks is None:
+            return np.zeros(4)
+        
+        wrist = np.array([landmarks[HandLandmark.WRIST].x,
+                         landmarks[HandLandmark.WRIST].y,
+                         landmarks[HandLandmark.WRIST].z])
+        middle_mcp = np.array([landmarks[HandLandmark.MIDDLE_FINGER_MCP].x,
+                               landmarks[HandLandmark.MIDDLE_FINGER_MCP].y,
+                               landmarks[HandLandmark.MIDDLE_FINGER_MCP].z])
+        hand_scale = np.linalg.norm(middle_mcp - wrist)
+        
+        if hand_scale < 0.001:
             return np.zeros(4)
         
         tip_pairs = [
@@ -224,32 +312,38 @@ class BISINDOPredictorOrientation:
         for idx1, idx2 in tip_pairs:
             p1 = np.array([landmarks[idx1].x, landmarks[idx1].y, landmarks[idx1].z])
             p2 = np.array([landmarks[idx2].x, landmarks[idx2].y, landmarks[idx2].z])
-            spreads.append(np.linalg.norm(p1 - p2))
+            dist = np.linalg.norm(p1 - p2) / hand_scale
+            spreads.append(dist)
         
         return np.array(spreads)
     
     def extract_hand_features(self, hand_landmarks):
-        """Extract all features from one hand."""
+        """Extract all features from one hand using relative coordinates."""
         if hand_landmarks is None:
             return np.zeros(self.features_per_hand)
         
+        landmarks = hand_landmarks.landmark
         features = []
         
-        # 1. Coordinates (63)
-        coords = np.array([
-            [lm.x, lm.y, lm.z] for lm in hand_landmarks.landmark
-        ]).flatten()
-        features.append(coords)
+        # 1. Relative coordinates (60)
+        rel_coords, hand_scale, wrist_pos = self.get_relative_coordinates(landmarks)
+        features.append(rel_coords)
         
-        # 2. Orientation (5)
-        palm_normal, palm_facing = self.calculate_palm_normal(hand_landmarks.landmark)
-        openness = self.calculate_hand_openness(hand_landmarks.landmark)
+        # 2. Hand scale (1)
+        features.append(np.array([hand_scale]))
+        
+        # 3. Wrist position (2)
+        features.append(np.array([wrist_pos[0], wrist_pos[1]]))
+        
+        # 4. Orientation (5)
+        palm_normal, palm_facing = self.calculate_palm_normal(landmarks)
+        openness = self.calculate_hand_openness(landmarks)
         features.append(np.concatenate([palm_normal, [palm_facing], [openness]]))
         
-        # 3. Finger features (9)
+        # 5. Finger features (9)
         if self.include_finger_features:
-            extensions = self.calculate_finger_extensions(hand_landmarks.landmark)
-            spreads = self.calculate_finger_spreads(hand_landmarks.landmark)
+            extensions = self.calculate_finger_extensions(landmarks)
+            spreads = self.calculate_finger_spreads(landmarks)
             features.append(np.concatenate([extensions, spreads]))
         
         return np.concatenate(features)
@@ -264,7 +358,6 @@ class BISINDOPredictorOrientation:
         
         all_features = np.concatenate([left_features, right_features])
         
-        # Orientation info for display
         orientation_info = {'left': None, 'right': None}
         
         if results.left_hand_landmarks:
@@ -276,6 +369,8 @@ class BISINDOPredictorOrientation:
             orientation_info['right'] = score
         
         return all_features, results, orientation_info
+    
+    # ==================== PREDICTION ====================
     
     def normalize(self, sequence):
         """Normalize sequence to [0, 1]."""
@@ -303,54 +398,79 @@ class BISINDOPredictorOrientation:
         return class_name, confidence, predictions
     
     def get_smoothed_prediction(self, class_name, confidence):
-        """
-        Smooth predictions using Majority Voting with Threshold.
-        Hanya return hasil jika mayoritas frame (70%+) sepakat.
-        """
-        # 1. Jika input None, jangan masukkan ke history (atau masukkan sebagai 'Uncertain')
+        """Smooth predictions using history."""
         if class_name is None:
             return None, 0
-            
-        # 2. Masukkan prediksi terbaru ke antrian
+        
         self.prediction_history.append((class_name, confidence))
         
-        # 3. Tunggu sampai history penuh dulu baru ambil keputusan
-        # (Supaya di awal tidak langsung menebak sembarangan)
-        if len(self.prediction_history) < self.prediction_history.maxlen:
-            return None, 0
+        if len(self.prediction_history) < 3:
+            return class_name, confidence
         
-        # 4. Hitung Voting (Frekuensi kemunculan tiap kelas)
         class_counts = {}
         confidence_sums = {}
         
         for cn, conf in self.prediction_history:
             if cn not in class_counts:
                 class_counts[cn] = 0
-                confidence_sums[cn] = 0.0
+                confidence_sums[cn] = 0
             class_counts[cn] += 1
             confidence_sums[cn] += conf
         
-        # 5. Cari kandidat pemenang (Most Common)
-        most_common_class = max(class_counts.keys(), key=lambda x: class_counts[x])
-        total_votes = len(self.prediction_history)
-        winner_votes = class_counts[most_common_class]
+        most_common = max(class_counts.keys(), key=lambda x: class_counts[x])
+        avg_confidence = confidence_sums[most_common] / class_counts[most_common]
         
-        # 6. ATURAN MAYORITAS (Threshold 70%)
-        # Pemenang harus mendominasi minimal 70% dari isi history
-        # Contoh: Dari 15 frame, minimal 10 frame harus "SAYA".
-        vote_threshold = 0.7 
+        return most_common, avg_confidence
+    
+    # ==================== RECORDING ====================
+    
+    def start_recording(self, frame_width, frame_height, fps=30):
+        """Start recording video."""
+        if self.is_recording:
+            return
         
-        if winner_votes >= (total_votes * vote_threshold):
-            # Hitung rata-rata confidence HANYA dari frame yang memilih pemenang
-            avg_confidence = confidence_sums[most_common_class] / winner_votes
-            return most_common_class, avg_confidence
-        else:
-            # Jika suara terpecah (misal: A=5, B=5, C=5), anggap tidak yakin
-            # Ini akan menghilangkan efek "Flickering" (kedip-kedip)
-            return None, 0
-
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"bisindo_{timestamp}.mp4"
+        self.current_recording_path = self.recording_dir / filename
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        self.video_writer = cv2.VideoWriter(
+            str(self.current_recording_path), fourcc, fps, (frame_width, frame_height)
+        )
+        
+        self.is_recording = True
+        self.recording_start_time = time.time()
+        self.recording_frame_count = 0
+        
+        print(f"\n🔴 Recording: {self.current_recording_path}")
+    
+    def stop_recording(self):
+        """Stop recording."""
+        if not self.is_recording:
+            return None
+        
+        self.is_recording = False
+        if self.video_writer:
+            self.video_writer.release()
+            self.video_writer = None
+        
+        duration = time.time() - self.recording_start_time
+        print(f"⬜ Saved: {self.current_recording_path} ({duration:.1f}s, {self.recording_frame_count} frames)")
+        
+        saved_path = self.current_recording_path
+        self.current_recording_path = None
+        return saved_path
+    
+    def write_frame(self, frame):
+        """Write frame to video."""
+        if self.is_recording and self.video_writer:
+            self.video_writer.write(frame)
+            self.recording_frame_count += 1
+    
+    # ==================== VISUALIZATION ====================
+    
     def draw_landmarks(self, frame, results):
-        """Draw landmarks on frame."""
+        """Draw landmarks."""
         if results.left_hand_landmarks:
             self.mp_drawing.draw_landmarks(
                 frame, results.left_hand_landmarks,
@@ -370,50 +490,54 @@ class BISINDOPredictorOrientation:
         return frame
     
     def draw_ui(self, frame, class_name, confidence, orientation_info, is_paused=False):
-        """Draw UI elements."""
+        """Draw UI."""
         h, w = frame.shape[:2]
         
-        # Top bar background
         overlay = frame.copy()
         cv2.rectangle(overlay, (0, 0), (w, 100), (0, 0, 0), -1)
         cv2.rectangle(overlay, (0, h-70), (w, h), (0, 0, 0), -1)
         cv2.addWeighted(overlay, 0.7, frame, 0.3, 0, frame)
         
         # Title
-        cv2.putText(frame, "BISINDO Recognition (with Orientation)", 
-                    (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+        cv2.putText(frame, "BISINDO Recognition (Relative Coords)", 
+                    (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         
         # FPS
         cv2.putText(frame, f"FPS: {self.fps:.1f}", 
                     (w-100, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         
-        # Buffer status
+        # Buffer
         buffer_pct = len(self.frame_buffer) / self.sequence_length * 100
         cv2.putText(frame, f"Buffer: {buffer_pct:.0f}%", 
                     (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
         
-        # Orientation display
-        # Left hand
+        # Recording
+        if self.is_recording:
+            if int(time.time() * 2) % 2 == 0:
+                cv2.circle(frame, (w-30, 50), 10, (0, 0, 255), -1)
+            duration = time.time() - self.recording_start_time
+            cv2.putText(frame, f"REC {duration:.1f}s", 
+                        (w-110, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        
+        # Orientation
         if orientation_info['left'] is not None:
             score = orientation_info['left']
-            # Untuk tangan kiri di mirror view, logika terbalik
             orient = "BACK" if score > 0.2 else "PALM" if score < -0.2 else "SIDE"
-            color = (0, 255, 0) if score > 0.2 else (0, 0, 255) if score < -0.2 else (0, 255, 255)
-            cv2.putText(frame, f"L: {orient}", (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+            color = (0, 255, 0) if orient == "PALM" else (0, 0, 255) if orient == "BACK" else (0, 255, 255)
+            cv2.putText(frame, f"L:{orient}", (10, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         
-        # Right hand
         if orientation_info['right'] is not None:
             score = orientation_info['right']
             orient = "PALM" if score > 0.2 else "BACK" if score < -0.2 else "SIDE"
-            color = (0, 255, 0) if score > 0.2 else (0, 0, 255) if score < -0.2 else (0, 255, 255)
-            cv2.putText(frame, f"R: {orient}", (100, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+            color = (0, 255, 0) if orient == "PALM" else (0, 0, 255) if orient == "BACK" else (0, 255, 255)
+            cv2.putText(frame, f"R:{orient}", (90, 75), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         
-        # Paused indicator
+        # Paused
         if is_paused:
             cv2.putText(frame, "PAUSED", (w//2-50, h//2), 
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
         
-        # Prediction result
+        # Prediction
         if class_name and confidence >= self.confidence_threshold:
             bar_width = int(confidence * 300)
             bar_color = (0, 255, 0) if confidence > 0.8 else (0, 255, 255) if confidence > 0.6 else (0, 165, 255)
@@ -430,13 +554,13 @@ class BISINDOPredictorOrientation:
                         (10, h-40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 2)
         
         # Controls
-        cv2.putText(frame, "Q:Quit | C:Clear | P:Pause | L:Landmarks", 
-                    (w-320, h-10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (150, 150, 150), 1)
+        cv2.putText(frame, "Q:Quit R:Record C:Clear P:Pause L:Landmarks", 
+                    (w-380, h-10), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (150, 150, 150), 1)
         
         return frame
     
     def draw_top_predictions(self, frame, predictions, top_k=5):
-        """Draw top predictions panel."""
+        """Draw top predictions."""
         if predictions is None:
             return frame
         
@@ -460,7 +584,7 @@ class BISINDOPredictorOrientation:
         return frame
     
     def update_fps(self):
-        """Update FPS counter."""
+        """Update FPS."""
         self.frame_count += 1
         current_time = time.time()
         elapsed = current_time - self.last_time
@@ -470,8 +594,10 @@ class BISINDOPredictorOrientation:
             self.frame_count = 0
             self.last_time = current_time
     
+    # ==================== MAIN LOOP ====================
+    
     def run(self, camera_id=0, show_landmarks=True, show_top_predictions=True):
-        """Run real-time prediction."""
+        """Run prediction."""
         print(f"\nOpening camera {camera_id}...")
         cap = cv2.VideoCapture(camera_id)
         
@@ -483,8 +609,21 @@ class BISINDOPredictorOrientation:
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         cap.set(cv2.CAP_PROP_FPS, 30)
         
-        print("Camera opened!")
-        print("\nControls: Q=Quit, C=Clear, P=Pause, L=Landmarks, T=Top predictions\n")
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS) or 30
+        
+        print(f"Camera: {frame_width}x{frame_height} @ {fps}fps")
+        print(f"\n{'='*50}")
+        print("CONTROLS")
+        print(f"{'='*50}")
+        print("  Q - Quit")
+        print("  R - Start/Stop Recording")
+        print("  C - Clear buffer")
+        print("  P - Pause/Resume")
+        print("  L - Toggle landmarks")
+        print("  T - Toggle top predictions")
+        print(f"{'='*50}\n")
         
         is_paused = False
         
@@ -494,6 +633,7 @@ class BISINDOPredictorOrientation:
                 break
             
             # frame = cv2.flip(frame, 1)
+            clean_frame = frame.copy()
             
             if not is_paused:
                 landmarks, results, orientation_info = self.extract_frame_landmarks(frame)
@@ -507,6 +647,9 @@ class BISINDOPredictorOrientation:
                 
                 if show_top_predictions:
                     frame = self.draw_top_predictions(frame, all_predictions)
+                
+                if self.is_recording:
+                    self.write_frame(clean_frame)
             else:
                 class_name, confidence = None, 0
                 orientation_info = {'left': None, 'right': None}
@@ -519,14 +662,20 @@ class BISINDOPredictorOrientation:
             key = cv2.waitKey(1) & 0xFF
             
             if key == ord('q'):
+                if self.is_recording:
+                    self.stop_recording()
                 break
+            elif key == ord('r'):
+                if self.is_recording:
+                    self.stop_recording()
+                else:
+                    self.start_recording(frame_width, frame_height, int(fps))
             elif key == ord('c'):
                 self.frame_buffer.clear()
                 self.prediction_history.clear()
                 print("Buffer cleared.")
             elif key == ord('p'):
                 is_paused = not is_paused
-                print("Paused." if is_paused else "Resumed.")
             elif key == ord('l'):
                 show_landmarks = not show_landmarks
             elif key == ord('t'):
@@ -538,11 +687,11 @@ class BISINDOPredictorOrientation:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='BISINDO Prediction with Palm Orientation')
+    parser = argparse.ArgumentParser(description='BISINDO Prediction (Relative Coordinates)')
     
     parser.add_argument('--model', '-m', type=str, 
-                        default='models/bisindo_improved_lstm_final.keras',
-                        help='Path to trained model')
+                        default='models/bisindo_bilstm_fixed_best.keras',
+                        help='Path to model')
     parser.add_argument('--labels', '-l', type=str, 
                         default='models/label_encoder.pkl',
                         help='Path to label encoder')
@@ -552,6 +701,8 @@ def main():
                         help='Sequence length')
     parser.add_argument('--threshold', '-t', type=float, default=0.7,
                         help='Confidence threshold')
+    parser.add_argument('--recording-dir', '-r', type=str, default='recordings',
+                        help='Recording directory')
     parser.add_argument('--no-finger-features', action='store_true',
                         help='Disable finger features')
     
@@ -559,19 +710,19 @@ def main():
     
     if not Path(args.model).exists():
         print(f"Error: Model not found: {args.model}")
-        print("\nPastikan model sudah di-download dari Google Drive!")
         return
     
     if not Path(args.labels).exists():
         print(f"Error: Label encoder not found: {args.labels}")
         return
     
-    predictor = BISINDOPredictorOrientation(
+    predictor = BISINDOPredictorRelative(
         model_path=args.model,
         label_encoder_path=args.labels,
         sequence_length=args.sequence_length,
         include_finger_features=not args.no_finger_features,
-        confidence_threshold=args.threshold
+        confidence_threshold=args.threshold,
+        recording_dir=args.recording_dir
     )
     
     predictor.run(camera_id=args.camera)
