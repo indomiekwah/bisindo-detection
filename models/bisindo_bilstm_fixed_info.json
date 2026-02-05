@@ -1,10 +1,10 @@
 {
   "model_name": "bisindo_bilstm_fixed",
-  "test_accuracy": 0.9382715821266174,
-  "test_loss": 1.1025645732879639,
-  "final_train_accuracy": 0.996363639831543,
-  "final_val_accuracy": 0.9387755393981934,
-  "epochs_trained": 61,
+  "test_accuracy": 0.9090909361839294,
+  "test_loss": 1.1845507621765137,
+  "final_train_accuracy": 0.9955223798751831,
+  "final_val_accuracy": 0.8666666746139526,
+  "epochs_trained": 54,
   "sequence_length": 60,
   "num_features": 154,
   "num_classes": 7,
@@ -17,9 +17,9 @@
     "Takut",
     "Terkejut"
   ],
-  "training_samples": 550,
-  "validation_samples": 49,
-  "test_samples": 81,
+  "training_samples": 670,
+  "validation_samples": 60,
+  "test_samples": 99,
   "augmentation": "3x (original + noise + (w/o time_shift))",
   "fixes_applied": [
     "Split before augmentation",
